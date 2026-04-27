@@ -1,0 +1,21 @@
+# Node / Next
+node_modules/
+.next/
+out/
+.env
+.env.local
+*.log
+
+# Go
+*.exe
+/backend/api
+/backend/backend
+/backend/tmp/
+
+# Docker compose override local (apenas para devs específicos)
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+.DS_Store

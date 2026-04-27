@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: nimo_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nimo
+      POSTGRES_PASSWORD: nimo
+      POSTGRES_DB: nimo
+    ports:
+      - "5432:5432"
+    volumes:
+      - nimo_pgdata:/var/lib/postgresql/data
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+
+  backend:
+    build: ./backend
+    container_name: nimo_api
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://nimo:nimo@db:5432/nimo?sslmode=disable
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    container_name: nimo_web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+    ports:
+      - "3000:3000"
+
+volumes:
+  nimo_pgdata:
