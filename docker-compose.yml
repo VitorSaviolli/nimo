@@ -12,13 +12,20 @@ services:
     volumes:
       - nimo_pgdata:/var/lib/postgresql/data
       - ./backend/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    # Garante que o backend só conecta depois do banco estar pronto pra aceitar queries
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nimo -d nimo"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
 
   backend:
     build: ./backend
     container_name: nimo_api
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgres://nimo:nimo@db:5432/nimo?sslmode=disable
       PORT: "8080"

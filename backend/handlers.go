@@ -44,6 +44,60 @@ func erro(c *fiber.Ctx, status int, msg string) error {
 	return c.Status(status).JSON(fiber.Map{"erro": msg})
 }
 
+// limparCNPJ remove tudo que não é dígito.
+func limparCNPJ(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if r >= '0' && r <= '9' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// formatarCNPJ recebe 14 dígitos e devolve "XX.XXX.XXX/XXXX-XX".
+func formatarCNPJ(d string) string {
+	return d[0:2] + "." + d[2:5] + "." + d[5:8] + "/" + d[8:12] + "-" + d[12:14]
+}
+
+// validarCNPJ checa se a string tem 14 dígitos e se os dígitos verificadores
+// batem com o algoritmo oficial. Recusa também sequências repetidas (11111111111111).
+func validarCNPJ(d string) bool {
+	if len(d) != 14 {
+		return false
+	}
+	todosIguais := true
+	for i := 1; i < 14; i++ {
+		if d[i] != d[0] {
+			todosIguais = false
+			break
+		}
+	}
+	if todosIguais {
+		return false
+	}
+
+	calcularDigito := func(base string, pesos []int) int {
+		soma := 0
+		for i, p := range pesos {
+			soma += int(base[i]-'0') * p
+		}
+		resto := soma % 11
+		if resto < 2 {
+			return 0
+		}
+		return 11 - resto
+	}
+
+	pesos1 := []int{5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2}
+	pesos2 := []int{6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2}
+
+	dig1 := calcularDigito(d[:12], pesos1)
+	dig2 := calcularDigito(d[:13], pesos2)
+
+	return dig1 == int(d[12]-'0') && dig2 == int(d[13]-'0')
+}
+
 // ---------- Produtos ----------
 
 func listarProdutos(c *fiber.Ctx) error {
@@ -125,16 +179,22 @@ func criarFornecedor(c *fiber.Ctx) error {
 		return erro(c, 400, "JSON inválido")
 	}
 	entrada.Nome = strings.TrimSpace(entrada.Nome)
-	entrada.CNPJ = strings.TrimSpace(entrada.CNPJ)
-	if entrada.Nome == "" || entrada.CNPJ == "" {
-		return erro(c, 400, "nome e cnpj são obrigatórios")
+	if entrada.Nome == "" {
+		return erro(c, 400, "nome é obrigatório")
 	}
+
+	// Aceita CNPJ com ou sem máscara — limpa e valida pelos dígitos.
+	cnpjDigitos := limparCNPJ(entrada.CNPJ)
+	if !validarCNPJ(cnpjDigitos) {
+		return erro(c, 400, "CNPJ inválido")
+	}
+	cnpjFormatado := formatarCNPJ(cnpjDigitos)
 
 	var f Fornecedor
 	err := db.QueryRow(context.Background(),
 		`INSERT INTO fornecedores (nome, cnpj) VALUES ($1, $2)
 		 RETURNING id, nome, cnpj, criado_em`,
-		entrada.Nome, entrada.CNPJ,
+		entrada.Nome, cnpjFormatado,
 	).Scan(&f.ID, &f.Nome, &f.CNPJ, &f.CriadoEm)
 
 	var pgErr *pgconn.PgError

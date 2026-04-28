@@ -10,6 +10,31 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// Valida o algoritmo dos dígitos verificadores do CNPJ.
+func TestValidarCNPJ(t *testing.T) {
+	casos := []struct {
+		entrada string
+		valido  bool
+	}{
+		{"34.274.233/0001-02", true},  // Petrobras Distribuidora
+		{"33337122000127", true},       // Ipiranga, sem máscara
+		{"33.453.598/0001-23", true},   // Raízen
+		{"00000000000000", false},      // todos zeros
+		{"11111111111111", false},      // todos iguais
+		{"12345678901234", false},      // dígitos verificadores errados
+		{"123", false},                  // curto demais
+		{"", false},                     // vazio
+	}
+	for _, c := range casos {
+		t.Run(c.entrada, func(t *testing.T) {
+			d := limparCNPJ(c.entrada)
+			if got := validarCNPJ(d); got != c.valido {
+				t.Errorf("CNPJ %q: esperava %v, recebeu %v", c.entrada, c.valido, got)
+			}
+		})
+	}
+}
+
 // Teste simples sobre o handler de validação de criarPreco — não exige banco.
 // Verifica que entradas inválidas retornam 400 com mensagem clara.
 func TestCriarPreco_ValidacaoEntrada(t *testing.T) {

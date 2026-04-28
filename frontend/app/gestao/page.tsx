@@ -4,6 +4,19 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Produto, Fornecedor } from "@/lib/types";
 
+// Aplica a máscara XX.XXX.XXX/XXXX-XX enquanto o usuário digita.
+// Aceita apenas dígitos; ignora qualquer outro caractere.
+function mascararCNPJ(valor: string): string {
+  const digitos = valor.replace(/\D/g, "").slice(0, 14);
+  const partes: string[] = [];
+  if (digitos.length > 0) partes.push(digitos.slice(0, 2));
+  if (digitos.length > 2) partes[0] += "." + digitos.slice(2, 5);
+  if (digitos.length > 5) partes[0] += "." + digitos.slice(5, 8);
+  if (digitos.length > 8) partes[0] += "/" + digitos.slice(8, 12);
+  if (digitos.length > 12) partes[0] += "-" + digitos.slice(12, 14);
+  return partes[0] ?? "";
+}
+
 export default function Gestao() {
   const [aba, setAba] = useState<"produtos" | "fornecedores">("produtos");
 
@@ -150,10 +163,12 @@ function SecaoFornecedores() {
         />
         <input
           required
-          placeholder="CNPJ"
+          placeholder="CNPJ (00.000.000/0000-00)"
+          inputMode="numeric"
+          maxLength={18}
           className="w-full border rounded px-3 py-2"
           value={cnpj}
-          onChange={(e) => setCnpj(e.target.value)}
+          onChange={(e) => setCnpj(mascararCNPJ(e.target.value))}
         />
         <button className="bg-emerald-600 text-white px-4 py-2 rounded font-medium hover:bg-emerald-700">
           Cadastrar
