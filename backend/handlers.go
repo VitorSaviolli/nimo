@@ -11,8 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// ---------- Tipos ----------
-
 type Produto struct {
 	ID        int       `json:"id"`
 	Nome      string    `json:"nome"`
@@ -37,8 +35,6 @@ type Preco struct {
 	Valor         float64   `json:"valor"`
 	CriadoEm      time.Time `json:"criado_em,omitempty"`
 }
-
-// ---------- Helpers ----------
 
 func erro(c *fiber.Ctx, status int, msg string) error {
 	return c.Status(status).JSON(fiber.Map{"erro": msg})
@@ -98,8 +94,6 @@ func validarCNPJ(d string) bool {
 	return dig1 == int(d[12]-'0') && dig2 == int(d[13]-'0')
 }
 
-// ---------- Produtos ----------
-
 func listarProdutos(c *fiber.Ctx) error {
 	rows, err := db.Query(context.Background(),
 		`SELECT id, nome, COALESCE(descricao,''), criado_em FROM produtos ORDER BY nome`)
@@ -148,8 +142,6 @@ func criarProduto(c *fiber.Ctx) error {
 	}
 	return c.Status(201).JSON(p)
 }
-
-// ---------- Fornecedores ----------
 
 func listarFornecedores(c *fiber.Ctx) error {
 	rows, err := db.Query(context.Background(),
@@ -206,8 +198,6 @@ func criarFornecedor(c *fiber.Ctx) error {
 	}
 	return c.Status(201).JSON(f)
 }
-
-// ---------- Preços ----------
 
 // GET /precos
 // Filtros opcionais (combináveis): produto_id, fornecedor_id, data_inicio, data_fim.
